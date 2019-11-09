@@ -1,0 +1,86 @@
+---
+title: "Assignment 1"
+author: "Evan Walker"
+date: "September 4, 2018"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exercise 1
+```{r, echo=FALSE}
+mat_primes = rbind(c(2,3,5),c(7,11,13),c(17,19,23),c(29,31,37))
+```
+
+```{r}
+#standardize a vector
+standardizer <- function(vect)
+{
+  standard_vect = (vect - mean(vect))/sd(vect)
+  return(standard_vect)
+}
+
+#standardize each column vecotr with for loop
+standard_primes = mat_primes
+for (i in 1:dim(mat_primes)[2]){
+  standard_primes[ ,i] = standardizer(mat_primes[ ,i])
+}
+
+#standardize each column vector with apply function
+standard_primes_v2 = apply(mat_primes,MARGIN=2,function(x) (x - mean(x))/sd(x))
+```
+Double checking output.
+```{r}
+mat_primes
+standard_primes
+standard_primes_v2
+```
+
+
+## Exercise 2
+### a.)
+```{r}
+d=CO2
+summary(d)
+
+plot(d$conc,d$uptake)
+```
+
+From this  scatter plot of concentration vs. uptake, we see that the lower the concentration; the lower the uptake is. (on average). the minimum of the uptake changes slower, with respect to concentration, as the maximum changes more drastically with respect to concentration. taking an average for uptake,  we see a shape similar to the steady growth of  $y=\sqrt{x}$
+
+### b.)
+```{r}
+percabs=(d$uptake/d$conc)*100
+d=cbind(d,percabs)
+```
+
+### c.)
+```{r}
+que = d[grep("Quebec",d$Type), ]
+missi = d[grep("Mississippi",d$Type), ]
+
+mean_que = mean(que$percabs)
+std_que = sd(que$percabs)
+
+mean_missi = mean(missi$percabs)
+std_missi = sd(missi$percabs)
+```
+Mean and standard deviation for percentage of the ambient concentration absorbed for Quebec plants
+```{r}
+mean_que
+std_que
+```
+Mean and standard deviation for percentage of the ambient concentration absorbed for Mississippi plants
+```{r}
+mean_missi
+std_missi
+```
+Quebecan plants, on average, absorb more CO2 than plants in Mississipi. Both with relatively the same deviation, Quebecan plants vary slightly more with their absorbtion than Mississippi plants. Perhaps due to altitude differences, since concentration of gas will change with altitude.
+
+### d.)
+```{r,echo=FALSE}
+hist(d$percabs)
+```

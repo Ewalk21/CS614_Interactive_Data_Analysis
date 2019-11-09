@@ -1,0 +1,122 @@
+---
+title: "Homework 3"
+author: "Evan Walker"
+date: "October 16, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r ,echo=FALSE}
+#install.packages("tidyverse")
+rm(list=ls())
+library(devtools)
+#install_github("vancebee/MarkovSCD")
+library(MarkovSCD)
+library(ggplot2)
+library(reshape2)
+#Load Baseline and Treatment Phase data for one home
+BL = HM2$MassAve[HM2$Phase == "BL"]
+TX = HM2$MassAve[HM2$Phase == "TX"]
+#Define state boundaries
+sb = seq(30,90,10)
+```
+
+
+## Problem 1
+```{r ,echo=FALSE}
+cv = dynamicsconv(tseries1 = BL, tseries2 = TX, nitvl = 10,statebounds = sb,lag = 6)
+il1 = cv$ilength1[7]
+il2 = cv$ilength2[7]
+vv = validitycheck(tseries1 = BL, tseries2 = TX, ilength1 = il1,ilength2 = il2,
+                   statebounds = sb,lag = 6)
+#summary(vv)
+#summary(il1)
+#summary(il2)
+#summary(cv)
+
+d=data.frame("norm"=vv$norm, "iter"=c(-4:2))
+#d
+ggplot(d, aes(x=iter, y = norm)) + geom_line()+
+  geom_point(size=4)+
+  scale_y_continuous(breaks = c(.7,.8,.9))+
+  scale_x_continuous(breaks = -4:2)+
+  labs(title="Home 209",
+        x ="Iteration Offset from A", y = "Norm")+
+  theme(plot.title = element_text(size=25, hjust = 0.5))+
+  theme(axis.title.y = element_text(size=20))+
+  theme(axis.title.x = element_text(size=20))
+```
+
+
+## Problem 2
+```{r ,echo=FALSE}
+dd=vv$diagconfig
+colnames(dd)=c(-4:2)
+rownames(dd)=c(1,0,-1)
+library(reshape2)
+meltedd=melt(dd, id.vars = "Pos", variable.name = "label",measure.vars=c(1,0,-1) , value.name = "meas")
+meltedd$Var1=as.factor(meltedd$Var1)
+colnames(meltedd)=c("Pos","Off","meas")
+ggplot(meltedd, aes(x = Off, y = meas))+
+  geom_line(aes(group=Pos, col=Pos),alpha=.9)+
+  geom_point(aes(col=Pos), size = 5,alpha=.9)+
+  labs(x="Iteration Offset from A",y="Mean Value")+
+  scale_x_continuous(limits = c(-4,2), breaks = -4:2)+
+  scale_colour_manual(values=c("orangered4", "darkolivegreen4", "slateblue4"),breaks=c(-1,1,0),labels=c(-1,"+1",0))+
+  theme(axis.title.y = element_text(size=20))+
+  theme(axis.title.x = element_text(size=20))+
+  theme(legend.position = c(.15, .99),legend.direction = "horizontal",legend.title=element_text(size=14),
+        legend.background = element_rect(colour = "transparent", fill = "transparent"))
+
+```
+
+
+## Problem 3
+```{r ,echo=FALSE}
+le = lageval(tseries = TX,statebounds = sb, lagrange = c(1,2,seq(3,60,3)))
+meltle=melt(le$diagbylag, id.vars = "Pos", variable.name = "state",measure.vars=c("S1","S2","S3","S4","S5","S6") , value.name = "meas")
+meltle=cbind(meltle,rep(le$lagrange/6,times=6))
+colnames(meltle)=c("meas","State","X")
+meltle$state=rep(1:6,each=22)
+meltle$state=as.factor(meltle$State)
+ggplot(meltle, aes(x=X,y = meas))+
+  geom_line(aes(group=State, col=State),alpha=.9)+
+  geom_point(aes(col=State,shape=State), size = 4,alpha=.9)+
+  scale_y_continuous(limits=c(0,1), breaks = c(0,.25,.5,.75,1))+
+  geom_vline(xintercept = 1,col="black",linetype = "dashed", size = .4)+
+  scale_colour_hue(c=50, l=40)+
+  labs(x="Lag",y="Probability")+
+  theme(axis.title.y = element_text(size=20),axis.text.y = element_text(size=10))+
+  theme(axis.title.x = element_text(size=20),axis.text.x = element_text(size=10))+
+  theme(legend.position = c(.5,.95),legend.direction = "horizontal",legend.title=element_text(size=14),
+       legend.background = element_rect(colour = "transparent", fill = "transparent"))
+        
+```
+
+
+## Problem 4
+```{r ,echo=FALSE}
+B = transmat(tseries = TX,statebounds = sb,lag = 6)
+tileData=as.data.frame(B$prob)
+tileData=apply(tileData,MARGIN=2, function(x) rev(x))
+tileData=cbind(tileData,rev(1:6))
+colnames(tileData)=c("S1","S2","S3","S4","S5","S6","id")
+
+Grillcheese=melt(tileData, id.vars = "id", variable.name = "id",measure.vars=c("S1","S2","S3","S4","S5","S6"), value.name = "meas")
+colnames(Grillcheese)=c("r","c","meas")
+Grillcheese=Grillcheese[1:36,]
+
+ggplot(Grillcheese,aes(x=c,y=r))+
+  geom_tile(aes(fill=meas),colour="black",size=.7)+#x, y, alpha, color, fill, linetype, size)+
+  geom_text(aes(x=c,y=r,label=round(100*meas)/100))+
+  scale_fill_gradient(low = "white", high = "goldenrod3",trans="sqrt",
+                      guide = "colourbar", aesthetics = "fill",limits=c(0,1),name = "")+
+  labs(x="DestBin",y="SourceBin")+
+  ggtitle("Home 209")+
+  theme(axis.title.y = element_text(size=20),axis.text.y = element_text(size=10))+
+  theme(axis.title.x = element_text(size=20),axis.text.x = element_text(size=10))
+  
+```

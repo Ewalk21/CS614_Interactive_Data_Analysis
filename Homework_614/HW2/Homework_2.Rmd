@@ -1,0 +1,149 @@
+---
+title: "Assignment 2"
+author: "Evan Walker"
+date: "September 24, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#setwd("~/Desktop/Mathemagic/Fall2019/CS614_Interactive_Data_Analysis/Homework_614/HW2")
+load('accel.RData')
+d = df
+summary(df)
+str(df)
+```
+
+## Exercise 1.
+Study recruitment was based on income/walkability quadrants where the design called for roughly
+equal number of people from Hi Income/Hi Walk, Hi Income/Low Walk, Low Income/High Walk, and
+Low Income/Low Walk. Determine if the recruitment goal of equal quadrants was met by creating a
+new variable that combines the information in the income and walkability variables. Create a bar plot for this new variable.
+
+```{r}
+wlkinc=d$walk
+wlkinc[intersect(which(d$income =="high"),which(d$walk == "high"))] = "hi/hi"
+wlkinc[intersect(which(d$income =="high"),which(d$walk == "low"))]  = "hi/lo"
+wlkinc[intersect(which(d$income =="low"),which(d$walk == "high"))]  = "lo/hi"
+wlkinc[intersect(which(d$income =="low"),which(d$walk == "low"))]   = "lo/lo"
+
+check = cbind(wlkinc,d$income)
+check = cbind(check,d$walk)
+head(check)
+
+d = cbind(d,wlkinc)
+summary(d$wlkinc)
+
+tt1 = table(d$wlkinc)
+barplot(tt1)
+```
+
+Based off the barplot, its mostly evenly sampled. However, low income and low walkability was slightly under sampled
+
+## Exercise 2
+Is the distribution of the average number of bout minutes or the average number of wear minutes
+more skewed? Use histograms to support your answer. Why do you think this may be? For the more
+skewed variable, create a second histogram of the log transform of values.
+```{r}
+summary(d$bout.min)
+summary(d$wear)
+```
+```{r, echo=FALSE}
+hist(d$bout.min)
+hist(d$wear)
+```
+
+
+The bout.min variable is distributed as chi sqr, with most of the variance explained on the left side of the distribution.
+This makes sense since many people may do 20-30 min of moderate-to-vigorous physical activity every day, but few people will do 40-60 min per day.
+
+```{r,echo=FALSE}
+hist(log(d$bout.min))
+```
+
+## Exercise 3
+
+Use the tools we have been developing to explore the goal minutes category. you see anything
+interesting? Can you come up with ways to improve the information summarized in your histogram?
+```{r}
+summary(d$goal_minutes)
+hist(d$goal_minutes)
+mean(d$goal_minutes)
+```
+
+This histogram shows goal_minutes has very low variance about its mean at 28 minutes. Most participants have a goal of 30 minutes, we can see this when we call summary(goal_minutes), it shows how the 1st and 3rd quartile are closey packed around the mean signifying the low variance of the distribution.
+
+## Exercise 4
+Use side-by-side box plots to determine whether the average number of bout minutes differs by sex.
+Back up your findings with summary statistics.
+```{r}
+str(d$Sex)
+bout_male = d$bout.min[which(d$Sex == "Male")]
+bout_female = d$bout.min[which(d$Sex == "Female")]
+length(bout_female)
+length(bout_male)
+
+boxplot(bout_female,bout_male,names = c("Female","Male"))
+
+summary(bout_female)
+summary(bout_male)
+t.test(bout_female,bout_male)
+```
+Based of summary statistics, boxplots, and t-test we see that the distributions are very similar. But we see that the distributions, altough similar in shape, are off slightly, with males having roughly 3 minutes more activity a day. (the distribution of the males are shifted to the right 3 minutes).
+
+However there are 244 female subjects and 132 male subjects, hence females hold 65% of the data. with this off balance, I decided to t-test the two groups and found a p-value of 0.1216. Thus concluded that the true means were equal.
+
+## Exercise 5
+Eliminate the income and walk variables and the variable created in Problem 1 from the data
+frame. Then, using the plot function, create a matrix of scatter plots comparing every variable in thedata set to every other. Identify two strong relationships and provide an explanation for why they
+exist. Also, explain why several scatter plots have horizontal or vertical lines in the center of the figure.
+
+```{r}
+dpl = d[,c(-1,-8,-9,-10,-11,-12)]
+summary(dpl)
+plot(dpl)
+```
+
+From the plots we see that goal_minutes creates vertical/horizontal lines in the plots. This relates to exercise 3, where we found that  the variance about the mean is very small, thus most points are at or around the mean at 28min. This creates lines in the plots since its a relatively constant value. 
+
+Other vertical/horizontal lines present in the plots are due to the binary variable Sex. 
+
+One clear relaitonship is between bout.min and goal_minutes. This is clear since the higher your goal is, the more minutes of activity you do a day, Hence the positive linear relationship. You would hope to see a one-to-one correspondence such that the slope of the line is 1, which would imply that everyone is doing exactly their goal minutes of activity a day.
+
+## Exercise 6
+In class when examining the TAO data, we discussed why imputing with the mean or a random value
+are not optimal imputation methods. Here, two superior imputation methods are suggested. Please
+choose one and implement it on the TAO data. Note that your procedure should be implemented
+separately for the 1993 and 1997 data. Provide and updated humidity versus air temp scatrer
+plot. Try to plot the 1993 and 1997 data together like we did in class.
+
+```{r}
+d=read.csv('tao.csv')
+summary(d)
+d_93=d[which(d$year==1993),]
+d_97=d[which(d$year==1997),]
+
+install.packages('norm')
+library('norm')
+prelim_93 <- prelim.norm(as.matrix(d_93))
+prelim_97 <- prelim.norm(as.matrix(d_97))
+thetaHat_93 <- em.norm(prelim_93)
+thetaHat_97 <- em.norm(prelim_97)
+rngseed(1234)
+d_93[is.na(d_93)]<-imp.norm(prelim_93, thetaHat_93, d_93)[is.na(d_93)]
+d_97[is.na(d_97)]<-imp.norm(prelim_97, thetaHat_97, d_97)[is.na(d_97)]
+summary(d_97)
+summary(d_93)
+plot(d_97$humidity,d_97$air.temp, col="red") 
+plot(d_93$humidity,d_93$air.temp, col="blue")
+```
+
+
+
+
+
+
+
